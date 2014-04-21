@@ -21,7 +21,7 @@ class Thermistor : public TempSensor
         ~Thermistor();
         
         // TempSensor interface.
-        void UpdateConfig(uint16_t module_checksum, uint16_t name_checksum);
+        void update_config(uint16_t module_checksum, uint16_t name_checksum);
         float get_temperature();
         
     private:

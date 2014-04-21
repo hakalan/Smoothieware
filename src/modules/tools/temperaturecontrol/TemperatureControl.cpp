@@ -123,7 +123,7 @@ void TemperatureControl::on_config_reload(void* argument){
     {
         sensor = new TempSensor(); // A dummy implementation
     }
-    sensor->UpdateConfig(temperature_control_checksum, this->name_checksum);
+    sensor->update_config(temperature_control_checksum, this->name_checksum);
     
     this->preset1 =             THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, preset1_checksum)->by_default(0)->as_number();
     this->preset2 =             THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, preset2_checksum)->by_default(0)->as_number();
@@ -170,6 +170,12 @@ void TemperatureControl::on_gcode_received(void* argument){
             char buf[32]; // should be big enough for any status
             int n= snprintf(buf, sizeof(buf), "%s:%3.1f /%3.1f @%d ", this->designator.c_str(), this->get_temperature(), ((target_temperature == UNDEFINED)?0.0:target_temperature), this->o);
             gcode->txt_after_ok.append(buf, n);
+            
+            // Output extra diagnostics using letter D.
+            if(gcode->has_letter('D'))
+            {
+                gcode->txt_after_ok.append("("+sensor->get_diagnostics()+") ");
+            }
             gcode->mark_as_taken();
 
         } else if (gcode->m == 301) {
