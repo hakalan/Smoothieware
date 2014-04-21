@@ -19,7 +19,8 @@ class Max31855 : public TempSensor
 public:
     Max31855();
     ~Max31855();
-    void UpdateConfig(uint16_t module_checksum, uint16_t name_checksum);
+    void update_config(uint16_t module_checksum, uint16_t name_checksum);
+    string get_diagnostics();
     float get_temperature();
 
 private:
@@ -27,6 +28,8 @@ private:
     Pin spi_cs_pin;
     mbed::SPI *spi;
     RingBuffer<float,16> readings;
+    int error_count;
+    uint16_t diagnostics;
 };
 
 #endif

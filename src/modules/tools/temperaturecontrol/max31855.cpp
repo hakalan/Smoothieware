@@ -20,7 +20,8 @@
 #define spi_channel_checksum CHECKSUM("spi_channel")
 
 Max31855::Max31855() :
-    spi(nullptr)
+    spi(nullptr),
+    error_count(0)
 {
 }
 
@@ -30,7 +31,7 @@ Max31855::~Max31855()
 }
 
 // Get configuration from the config file
-void Max31855::UpdateConfig(uint16_t module_checksum, uint16_t name_checksum)
+void Max31855::update_config(uint16_t module_checksum, uint16_t name_checksum)
 {
     // Chip select
     this->spi_cs_pin.from_string(THEKERNEL->config->value(module_checksum, name_checksum, chip_select_checksum)->by_default("0.16")->as_string());
@@ -59,6 +60,8 @@ void Max31855::UpdateConfig(uint16_t module_checksum, uint16_t name_checksum)
 
 float Max31855::get_temperature()
 {
+    static int contiguous_errcnt = 0;
+    
 	// Return an average of the last readings
     if (readings.size() >= readings.capacity()) {
         readings.delete_tail();
@@ -67,8 +70,17 @@ float Max31855::get_temperature()
 	float temp = read_temp();
 
 	// Discard occasional errors...
-	if(!isinf(temp))
+	if(isinf(temp))
+    {
+        ++contiguous_errcnt;
+        if(contiguous_errcnt>3)
+        {
+            return infinityf();
+        }
+    }
+    else
 	{
+        contiguous_errcnt = 0;
 		readings.push_back(temp);
 	}
 
@@ -83,35 +95,58 @@ float Max31855::get_temperature()
 
 float Max31855::read_temp()
 {
+    float temperature;
+
     this->spi_cs_pin.set(false);
     wait_us(1); // Must wait for first bit valid
 
     // Read 16 bits (writing something as well is required by the api)
     uint16_t data = spi->write(0);
 	//  Read next 16 bits (diagnostics)
-//	uint16_t data2 = spi->write(0);
+	uint16_t data2 = spi->write(0);
 
     this->spi_cs_pin.set(true);
-    
-    float temperature;
-
+        
     //Process temp
-    if (data & 0x0001)
+    if ((data & 0x0003) != 0)
     {
         // Error flag.
         temperature = infinityf();
-        // Todo: Interpret data2 for more diagnostics.
+
+        // Sticky error flags, but not temperature
+        diagnostics = data2 | (diagnostics&0x7);
     }
     else
     {
         data = data >> 2;
-        temperature = (data & 0x1FFF) / 4.f;
+        temperature = data / 4.f;
 
         if (data & 0x2000)
         {
             data = ~data;
-            temperature = ((data & 0x1FFF) + 1) / -4.f;
+            temperature = (data + 1) / -4.f;
         }
     }
+    
     return temperature; 
+}
+
+string Max31855::get_diagnostics()
+{
+    // Determine cold junction temperature.
+    float cold_junction_temp;
+    uint16_t data2 = diagnostics >> 4;
+    if(data2 & 0x800)
+    {
+        data2 = ~data2;
+        cold_junction_temp = (data2 + 1) / -16.f; 
+    }
+    else
+    {
+        cold_junction_temp = data2 / 16.f;
+    }
+
+    char buf[64];
+    sprintf(buf, "%d errors, %.1f deg, 0x%x", this->error_count, cold_junction_temp, diagnostics&0x7);
+    return string(buf);
 }

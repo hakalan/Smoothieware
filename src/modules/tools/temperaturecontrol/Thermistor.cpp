@@ -38,7 +38,7 @@ Thermistor::~Thermistor()
 }
 
 // Get configuration from the config file
-void Thermistor::UpdateConfig(uint16_t module_checksum, uint16_t name_checksum)
+void Thermistor::update_config(uint16_t module_checksum, uint16_t name_checksum)
 {
     // Values are here : http://reprap.org/wiki/Thermistor
     this->r0   = 100000;
