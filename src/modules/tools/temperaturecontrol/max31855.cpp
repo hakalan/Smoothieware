@@ -21,7 +21,8 @@
 
 Max31855::Max31855() :
     spi(nullptr),
-    error_count(0)
+    error_count(0),
+    diagnostics(0)
 {
 }
 
@@ -62,15 +63,15 @@ float Max31855::get_temperature()
 {
     static int contiguous_errcnt = 0;
     
-	// Return an average of the last readings
+    // Return an average of the last readings
     if (readings.size() >= readings.capacity()) {
         readings.delete_tail();
     }
 
-	float temp = read_temp();
+    float temp = read_temp();
 
-	// Discard occasional errors...
-	if(isinf(temp))
+    // Discard occasional errors...
+    if(isinf(temp))
     {
         ++contiguous_errcnt;
         if(contiguous_errcnt>3)
@@ -79,18 +80,18 @@ float Max31855::get_temperature()
         }
     }
     else
-	{
+    {
         contiguous_errcnt = 0;
-		readings.push_back(temp);
-	}
+        readings.push_back(temp);
+    }
 
-	if(readings.size()==0) return infinityf();
+    if(readings.size()==0) return infinityf();
 
-	float sum = 0;
+    float sum = 0;
     for (int i=0; i<readings.size(); i++)
         sum += *readings.get_ref(i);
 
-	return sum / readings.size();
+    return sum / readings.size();
 }
 
 float Max31855::read_temp()
@@ -102,29 +103,32 @@ float Max31855::read_temp()
 
     // Read 16 bits (writing something as well is required by the api)
     uint16_t data = spi->write(0);
-	//  Read next 16 bits (diagnostics)
-	uint16_t data2 = spi->write(0);
+    //  Read next 16 bits (diagnostics)
+    uint16_t data2 = spi->write(0);
+
+    // Store temperature and error flags (sticky) 
+    this->diagnostics = data2 | (this->diagnostics&0x7);
 
     this->spi_cs_pin.set(true);
         
     //Process temp
-    if ((data & 0x0003) != 0)
+    if (data & 0x0003)
     {
         // Error flag.
         temperature = infinityf();
-
-        // Sticky error flags, but not temperature
-        diagnostics = data2 | (diagnostics&0x7);
+        this->error_count++;
     }
     else
     {
         data = data >> 2;
-        temperature = data / 4.f;
 
         if (data & 0x2000)
         {
-            data = ~data;
-            temperature = (data + 1) / -4.f;
+            temperature = (~data + 1) / -4.f;
+        }
+        else
+        {
+            temperature = data / 4.f;       
         }
     }
     
@@ -138,8 +142,7 @@ string Max31855::get_diagnostics()
     uint16_t data2 = diagnostics >> 4;
     if(data2 & 0x800)
     {
-        data2 = ~data2;
-        cold_junction_temp = (data2 + 1) / -16.f; 
+        cold_junction_temp = (~data2 + 1) / -16.f; 
     }
     else
     {
@@ -147,6 +150,6 @@ string Max31855::get_diagnostics()
     }
 
     char buf[64];
-    sprintf(buf, "%d errors, %.1f deg, 0x%x", this->error_count, cold_junction_temp, diagnostics&0x7);
+    sprintf(buf, "%d errors: 0x%x, %.1f deg", this->error_count, this->diagnostics&0x7, cold_junction_temp);
     return string(buf);
 }

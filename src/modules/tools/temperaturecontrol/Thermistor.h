@@ -10,6 +10,7 @@
 
 #include "TempSensor.h"
 #include "RingBuffer.h"
+#include <string>
 
 #define QUEUE_LEN 8
 
@@ -23,7 +24,7 @@ class Thermistor : public TempSensor
         // TempSensor interface.
         void update_config(uint16_t module_checksum, uint16_t name_checksum);
         float get_temperature();
-        
+        std::string get_diagnostics();
     private:
         int new_thermistor_reading();
         float adc_value_to_temperature(int adc_value);
