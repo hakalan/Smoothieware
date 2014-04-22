@@ -77,6 +77,11 @@ float Thermistor::get_temperature()
     return adc_value_to_temperature(new_thermistor_reading());
 }
 
+std::string Thermistor::get_diagnostics()
+{
+	return "N/A";
+}
+
 float Thermistor::adc_value_to_temperature(int adc_value)
 {
     if ((adc_value == 4095) || (adc_value == 0))
