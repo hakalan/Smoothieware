@@ -11,6 +11,9 @@
 
 #define arm_length_checksum         CHECKSUM("arm_length")
 #define arm_radius_checksum         CHECKSUM("arm_radius")
+#define arm_radius_1_checksum       CHECKSUM("arm_radius_1")
+#define arm_radius_2_checksum       CHECKSUM("arm_radius_2")
+#define arm_radius_3_checksum       CHECKSUM("arm_radius_3")
 
 
 #define SQ(x) powf(x, 2)
@@ -109,25 +112,27 @@ bool JohannKosselSolution::set_optional(const arm_options_t& options) {
     if(i != options.end()) {
         arm_length= i->second;
     }
+    
     i= options.find('R');
     if(i != options.end()) {
         arm_radius_1 = arm_radius_2 = arm_radius_3 = i->second;
     }
+    
     i= options.find('A');
     if(i != options.end()) {
         arm_radius_1 = i->second;
     }
+    
     i= options.find('B');
     if(i != options.end()) {
         arm_radius_2 = i->second;
     }
+    
     i= options.find('C');
     if(i != options.end()) {
         arm_radius_3 = i->second;
     }
     
-
-    }
     init();
     return true;
 }
