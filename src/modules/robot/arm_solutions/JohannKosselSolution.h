@@ -4,7 +4,6 @@
 #include "BaseSolution.h"
 
 class Config;
-
 class JohannKosselSolution : public BaseSolution {
     public:
         JohannKosselSolution(Config*);
@@ -18,7 +17,9 @@ class JohannKosselSolution : public BaseSolution {
         void init();
 
         float arm_length;
-        float arm_radius;
+        float arm_radius_1;
+        float arm_radius_2;
+        float arm_radius_3;
         float arm_length_squared;
 
         float DELTA_TOWER1_X;

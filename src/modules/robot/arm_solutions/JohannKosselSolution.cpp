@@ -11,6 +11,9 @@
 
 #define arm_length_checksum         CHECKSUM("arm_length")
 #define arm_radius_checksum         CHECKSUM("arm_radius")
+#define arm_radius_1_checksum       CHECKSUM("arm_radius_1")
+#define arm_radius_2_checksum       CHECKSUM("arm_radius_2")
+#define arm_radius_3_checksum       CHECKSUM("arm_radius_3")
 
 
 #define SQ(x) powf(x, 2)
@@ -21,8 +24,11 @@ JohannKosselSolution::JohannKosselSolution(Config* config)
     // arm_length is the length of the arm from hinge to hinge
     arm_length         = config->value(arm_length_checksum)->by_default(250.0f)->as_number();
     // arm_radius is the horizontal distance from hinge to hinge when the effector is centered
-    arm_radius         = config->value(arm_radius_checksum)->by_default(124.0f)->as_number();
-
+    float arm_radius         = config->value(arm_radius_checksum)->by_default(124.0f)->as_number();
+	arm_radius_1 = config->value(arm_radius_1_checksum)->by_default(arm_radius)->as_number();
+	arm_radius_2 = config->value(arm_radius_2_checksum)->by_default(arm_radius)->as_number();
+	arm_radius_3 = config->value(arm_radius_3_checksum)->by_default(arm_radius)->as_number();
+	
     init();
 }
 
@@ -30,19 +36,17 @@ void JohannKosselSolution::init() {
     arm_length_squared = SQ(arm_length);
 
     // Effective X/Y positions of the three vertical towers.
-    float DELTA_RADIUS = arm_radius;
-
     float SIN_60   = 0.8660254037844386F;
     float COS_60   = 0.5F;
 
-    DELTA_TOWER1_X = -SIN_60 * DELTA_RADIUS; // front left tower
-    DELTA_TOWER1_Y = -COS_60 * DELTA_RADIUS;
+    DELTA_TOWER1_X = -SIN_60 * arm_radius_1; // front left tower
+    DELTA_TOWER1_Y = -COS_60 * arm_radius_1;
 
-    DELTA_TOWER2_X =  SIN_60 * DELTA_RADIUS; // front right tower
-    DELTA_TOWER2_Y = -COS_60 * DELTA_RADIUS;
+    DELTA_TOWER2_X =  SIN_60 * arm_radius_2; // front right tower
+    DELTA_TOWER2_Y = -COS_60 * arm_radius_2;
 
     DELTA_TOWER3_X = 0.0F; // back middle tower
-    DELTA_TOWER3_Y = DELTA_RADIUS;
+    DELTA_TOWER3_Y = arm_radius_3;
 }
 
 void JohannKosselSolution::cartesian_to_actuator( float cartesian_mm[], float actuator_mm[] )
@@ -107,18 +111,37 @@ bool JohannKosselSolution::set_optional(const arm_options_t& options) {
     i= options.find('L');
     if(i != options.end()) {
         arm_length= i->second;
-
     }
+    
     i= options.find('R');
     if(i != options.end()) {
-        arm_radius= i->second;
+        arm_radius_1 = arm_radius_2 = arm_radius_3 = i->second;
     }
+    
+    i= options.find('A');
+    if(i != options.end()) {
+        arm_radius_1 = i->second;
+    }
+    
+    i= options.find('B');
+    if(i != options.end()) {
+        arm_radius_2 = i->second;
+    }
+    
+    i= options.find('C');
+    if(i != options.end()) {
+        arm_radius_3 = i->second;
+    }
+    
     init();
     return true;
 }
 
 bool JohannKosselSolution::get_optional(arm_options_t& options) {
     options['L']= this->arm_length;
-    options['R']= this->arm_radius;
+    options['A']= this->arm_radius_1;
+    options['B']= this->arm_radius_2;
+    options['C']= this->arm_radius_3;
+
     return true;
 };
