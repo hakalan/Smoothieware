@@ -1,4 +1,4 @@
-#include "JohannKosselSolution.h"
+#include "LinearDeltaSolution.h"
 #include <fastmath.h>
 #include "checksumm.h"
 #include "ConfigValue.h"
@@ -19,7 +19,7 @@
 #define SQ(x) powf(x, 2)
 #define ROUND(x, y) (roundf(x * 1e ## y) / 1e ## y)
 
-JohannKosselSolution::JohannKosselSolution(Config* config)
+LinearDeltaSolution::LinearDeltaSolution(Config* config)
 {
     // arm_length is the length of the arm from hinge to hinge
     arm_length         = config->value(arm_length_checksum)->by_default(250.0f)->as_number();
@@ -32,7 +32,7 @@ JohannKosselSolution::JohannKosselSolution(Config* config)
     init();
 }
 
-void JohannKosselSolution::init() {
+void LinearDeltaSolution::init() {
     arm_length_squared = SQ(arm_length);
 
     // Effective X/Y positions of the three vertical towers.
@@ -49,7 +49,7 @@ void JohannKosselSolution::init() {
     DELTA_TOWER3_Y = arm_radius_3;
 }
 
-void JohannKosselSolution::cartesian_to_actuator( float cartesian_mm[], float actuator_mm[] )
+void LinearDeltaSolution::cartesian_to_actuator( float cartesian_mm[], float actuator_mm[] )
 {
     actuator_mm[ALPHA_STEPPER] = sqrtf(this->arm_length_squared
                                 - SQ(DELTA_TOWER1_X - cartesian_mm[X_AXIS])
@@ -65,7 +65,7 @@ void JohannKosselSolution::cartesian_to_actuator( float cartesian_mm[], float ac
                                 ) + cartesian_mm[Z_AXIS];
 }
 
-void JohannKosselSolution::actuator_to_cartesian( float actuator_mm[], float cartesian_mm[] )
+void LinearDeltaSolution::actuator_to_cartesian( float actuator_mm[], float cartesian_mm[] )
 {
     // from http://en.wikipedia.org/wiki/Circumscribed_circle#Barycentric_coordinates_from_cross-_and_dot-products
     // based on https://github.com/ambrop72/aprinter/blob/2de69a/aprinter/printer/DeltaTransform.h#L81
@@ -104,7 +104,7 @@ void JohannKosselSolution::actuator_to_cartesian( float actuator_mm[], float car
     cartesian_mm[2] = ROUND(cartesian[2], 4);
 }
 
-bool JohannKosselSolution::set_optional(const arm_options_t& options) {
+bool LinearDeltaSolution::set_optional(const arm_options_t& options) {
 
     arm_options_t::const_iterator i;
 
@@ -137,7 +137,7 @@ bool JohannKosselSolution::set_optional(const arm_options_t& options) {
     return true;
 }
 
-bool JohannKosselSolution::get_optional(arm_options_t& options) {
+bool LinearDeltaSolution::get_optional(arm_options_t& options) {
     options['L']= this->arm_length;
     options['A']= this->arm_radius_1;
     options['B']= this->arm_radius_2;

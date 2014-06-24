@@ -12,7 +12,7 @@
 #include "RingBuffer.h"
 #include <string>
 
-#define QUEUE_LEN 8
+#define QUEUE_LEN 32
 
 
 class Thermistor : public TempSensor
