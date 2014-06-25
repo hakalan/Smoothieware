@@ -60,6 +60,15 @@ function getTemperature () {
   runCommand("M105", false);
 }
 
+function fanSet(event) {
+  var val = document.getElementById("fan_value").value;
+  runCommand("M106 S" + val, true);
+}
+
+function fanOff() {
+  runCommand("M107", true);
+}
+
 function handleFileSelect(evt) {
     var files = evt.target.files; // handleFileSelectist object
 

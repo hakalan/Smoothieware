@@ -7,6 +7,7 @@
 
 #ifndef tempsensor_h
 #define tempsensor_h
+#include <string>
 
 class TempSensor
 {
@@ -18,7 +19,7 @@ public:
     virtual float get_temperature() { return -1.f; }
 
     // Return a short diagnostics string
-    virtual string get_diagnostics() { return "dummy"; }
+    virtual std::string get_diagnostics() { return "dummy"; }
 
     // Make sure the interface provides a destructor.
     virtual ~TempSensor() {}
