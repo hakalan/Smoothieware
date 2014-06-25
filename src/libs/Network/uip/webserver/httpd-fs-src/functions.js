@@ -1,9 +1,12 @@
 
 function runCommand(cmd, silent) {
-  // Get some values from elements on the page:
-  var $form = $( "#commandForm" );
+  // Add to command log
+  var option = document.createElement("option");
+  option.text = cmd;
+  document.getElementById("commandlog").add(option, 0);
+
   cmd += "\n";
-  url = silent ? "/command_silent" : "/command"; // $form.attr( "action" );
+  url = silent ? "/command_silent" : "/command";
   // Send the data using post
   var posting = $.post( url, cmd );
   // Put the results in a div
@@ -17,6 +20,10 @@ function runCommand(cmd, silent) {
   }
 }
 
+function sendCommand(event) {
+  runCommand($("#commandText").val(), false);
+}
+
 function runCommandSilent(cmd) {
   runCommand(cmd, true);
 }
@@ -28,16 +35,16 @@ function runCommandCallback(cmd,callback) {
 }
 
 function jogXYClick (cmd) {
-  runCommand("G91 G0 " + cmd + " F" + document.getElementById("xy_velocity").value + " G90", true)
+  runCommand("G91 G0 " + cmd + " F" + $("#xy_velocity").val() + " G90", true)
 }
 
 function jogZClick (cmd) {
-  runCommand("G91 G0 " + cmd + " F" + document.getElementById("z_velocity").value + " G90", true)
+  runCommand("G91 G0 " + cmd + " F" + $("#z_velocity").val() + " G90", true)
 }
 
 function extrude(event,a,b) {
-  var length = document.getElementById("extrude_length").value;
-  var velocity = document.getElementById("extrude_velocity").value;
+  var length = $("#extrude_length").val();
+  var velocity = $("#extrude_velocity").val();
   var direction = (event.currentTarget.id=='extrude')?1:-1;
   runCommand("G91 G0 E" + (length * direction) + " F" + velocity + " G90", true);
 }
@@ -48,7 +55,7 @@ function motorsOff(event) {
 
 function heatSet(event) {
   var type = (event.currentTarget.id=='heat_set')?104:140;
-  var temperature = (type==104)?document.getElementById("heat_value").value:document.getElementById("bed_value").value;
+  var temperature = (type==104) ? $("#heat_value").val() : $("#bed_value").val();
   runCommand("M" + type + " S" + temperature, true);
 }
 
@@ -66,6 +73,7 @@ function fanSet(event) {
 }
 
 function fanOff() {
+  document.getElementById("fan_value").value = 0;
   runCommand("M107", true);
 }
 

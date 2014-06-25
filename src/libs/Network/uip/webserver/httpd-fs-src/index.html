@@ -10,6 +10,9 @@
 
 <h1>Welcome to Smoothie</h1>
 
+<table>
+<td  style="vertical-align:top">
+
 <button id="motors_off" onclick="motorsOff(event)">Motors Off</button>
 
 XY:<input type="text" id="xy_velocity" size=4 value=3000 style="width:50px" />mm/min
@@ -302,35 +305,28 @@ Z:<input type="text" id="z_velocity" size=3 value=200 style="width:40px">
   </svg>
 
 <br />
-<table>
-<tr>
-  <td>
     <table>
       <tr>
         <td style="text-align:right">Heat:</td>
         <td><button id="heat_off" onclick="heatOff(event)">Off</button></td>
-        <td><input type="text" id="heat_value" size=3 style="width:40px" value=0></td>
-        <td><button id="heat_set" onclick="heatSet(event)">Set</button></td>
+        <td><input type="text" id="heat_value" size=3 style="width:40px" value=225></td>
+        <td style="text-align:left"><button id="heat_set" onclick="heatSet(event)">Set</button></td>
+        <td>
+          <button id="get_temperature" onclick="getTemperature()">Get Temperature</button>
+        </td>
       </tr>
       <tr>
         <td style="text-align:right">Bed:</td>
         <td><button id="bed_off" onclick="heatOff(event)">Off</button></td>
-        <td><input type="text" id="bed_value" size=3 style="width:40px" value=0></td>
+        <td><input type="text" id="bed_value" size=3 style="width:40px" value=55></td>
         <td><button id="bed_set" onclick="heatSet(event)">Set</button></td>
       </tr>
-	  <tr>
+      <tr>
         <td style="text-align:right">Fan:</td>
         <td><button id="fan_off" onclick="fanOff(event)">Off</button></td>
-        <td><input type="text" id="fan_value" size=3 style="width:40px" value=0></td>
-        <td><button id="fan_set" onclick="fanSet(event)">Set</button></td>
+        <td colspan=3><input type="range" id="fan_value" size=3 style="width:200px" min=0 max=255 value=255 onmouseup="fanSet(event)"></td>
       </tr>
     </table>
-  </td>
-  <td valign="top">
-    <button id="get_temperature" onclick="getTemperature()">Get Temperature</button>
-  </td>
-</tr>
-</table>
 <br/>
 
 <button id="extrude" onclick="extrude(event)">Extrude</button>
@@ -341,33 +337,14 @@ mm @
 mm/min
 
 <h2>Commands</h2>
-<form action="/command" id="commandForm">
-		<input type="text" name="commandText" placeholder="Send Command...">
-		<input type="submit" value="Send">
-</form>
+<input type="text" name="commandText" placeholder="Send Command..." id="commandText">
+<input type="submit" value="Send" onclick="sendCommand()">
+
 <!-- the result of the command will be rendered inside this div -->
 <div id="result"></div>
-<script>
-	// Attach a submit handler to the form
-	$( "#commandForm" ).submit(function( event ) {
-		// Stop form from submitting normally
-		event.preventDefault();
-		// Get some values from elements on the page:
-		var $form = $( this );
-		command = $form.find( "input[name='commandText']" ).val();
-		command += "\n";
-		url = $form.attr( "action" );
-		// Send the data using post
-		var posting = $.post( url, command );
-		// Put the results in a div
-		posting.done(function( data ) {
-			$( "#result" ).empty();
-              $.each(data.split('\n'), function(index) {
-                  $( "#result" ).append( this + '<br/>' );
-              });
-		});
-	});
-</script>
+
+</td>
+<td valign="top">
 
 <h2> Upload File </h2>
 <input type="file" id="files" name="files[]" onchange="upload();">
@@ -387,5 +364,11 @@ mm/min
 <button id="progress" onclick="runCommand('progress', false)">Progress</button>
 <button id="abort" onclick="runCommand('abort', false)">Abort</button>
 
+</td>
+<td style="vertical-align:top">
+<h2>Command log</h2>
+<select style="width:300px" size="30" id="commandlog"></select>
+</td>
+</table>
 </body>
 </html>
