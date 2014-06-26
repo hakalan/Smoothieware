@@ -1,14 +1,17 @@
+<!DOCTYPE html>
 <html>
 <head>
 	<meta charset="utf-8">
 	<title>Smoothie Web</title>
 	<script type="text/javascript" src="http://code.jquery.com/jquery-1.9.1.js"></script>
-  <script type="text/javascript" src="functions.js"></script>
+	<script type="text/javascript" src="http://www.flotcharts.org/flot/jquery.flot.js"></script>
+	<script type="text/javascript" src="functions.js"></script>
 </head>
 
 <body>
 
 <h1>Welcome to Smoothie</h1>
+Smoothie ip: <input type="text" id="ip" style="width:100px">
 
 <table>
 <td  style="vertical-align:top">
@@ -330,7 +333,7 @@ Z:<input type="text" id="z_velocity" size=3 value=200 style="width:40px">
 <br/>
 
 <button id="extrude" onclick="extrude(event)">Extrude</button>
-<button id="reverse" onclick="extrude(event)">Reverse</button><br>
+<button id="reverse" onclick="extrude(event)">Reverse</button>
 <input type="text" id="extrude_length" value=5 size=3 style="width:35px">
 mm @
 <input type="text" id="extrude_velocity" value=100 size=3 style="width:40px">
@@ -338,7 +341,7 @@ mm/min
 
 <h2>Commands</h2>
 <input type="text" name="commandText" placeholder="Send Command..." id="commandText">
-<input type="submit" value="Send" onclick="sendCommand()">
+<input type="submit" value="Send" onclick="runCommand($('#commandText').val(), false);">
 
 <!-- the result of the command will be rendered inside this div -->
 <div id="result"></div>
@@ -361,13 +364,24 @@ mm/min
 <br/>
 <table id="fileList">
 </table>
-<button id="progress" onclick="runCommand('progress', false)">Progress</button>
-<button id="abort" onclick="runCommand('abort', false)">Abort</button>
+<button id="progress" onclick="runCommandSilent('progress')">Progress</button>
+<button id="abort" onclick="runCommandSilent('abort')">Abort</button>
 
 </td>
 <td style="vertical-align:top">
 <h2>Command log</h2>
-<select style="width:300px" size="30" id="commandlog"></select>
+<select style="width:300px" size="10" id="commandlog"></select>
+<br/>
+<button onclick="$('#commandlog').text('')">Clear</button>
+<br/>
+<br/>
+
+<div id="tempGraph" style="width:300px;height:200px"></div>
+<br/>
+<button onclick="startGraph()">Start</button>
+<button onclick="stopGraph()">Stop</button>
+<input type="number" value="1000" id="updateInterval" min=100></input>
+
 </td>
 </table>
 </body>
