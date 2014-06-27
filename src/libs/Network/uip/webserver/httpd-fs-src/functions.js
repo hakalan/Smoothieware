@@ -27,17 +27,10 @@ function runCommandSilent(cmd) {
   runCommand(cmd);
 }
 
-xx = 0;
-function fake() {
-	xx += 0.05;
-	return "T:"+(100+Math.sin(xx)*100)+" B:50";
-}
-
 function runCommandCallback(cmd,callback) {
-    var url = "/command";
-    cmd += "\n";
-    $.post( url, cmd, callback);
-	callback(fake());
+  var url = $("#address").val() + "/command";
+  cmd += "\n";
+  $.post( url, cmd, callback);
 }
 
 function jogXYClick (cmd) {
@@ -111,21 +104,6 @@ function addTemp(str) {
 	var regex = /[A-Z]:([0-9.]+).*[A-Z]:([0-9.]+)/;
 	var match = regex.exec(str);
 	
-/*	if (data1.length > totalPoints) {
-		data1 = data1.slice(1);
-		data2 = data2.slice(1);
-	}
-	
-	data1.push(Number(match[1]));
-	data2.push(Number(match[2]));
-
-	var res1 = [];
-	var res2 = [];
-	for (var i = 0; i < data1.length; ++i) {
-		res1.push([i, data1[i]])
-		res2.push([i, data2[i]])
-	}
-*/
 	var res1 = pushData(Number(match[1]), data1);
 	var res2 = pushData(Number(match[2]), data2);
 	
@@ -146,10 +124,20 @@ function addTemp(str) {
 	plot.draw();
 }
 
-function updateGraph() {
-	runCommandCallback("M105", addTemp);
+var xx = 0;
+function fake() {
+	xx += 0.05;
+	return "T:"+(100+Math.sin(xx)*100)+"/200 B:50/55";
+}
 
-	graphTimer = setTimeout(updateGraph, updateInterval);
+function updateGraph() {
+  if($("#sim").is(":checked")) {
+    addTemp(fake());
+  } else {
+	runCommandCallback("M105", addTemp);
+  }
+  
+  graphTimer = setTimeout(updateGraph, updateInterval);
 }
 
 function stopGraph() {
