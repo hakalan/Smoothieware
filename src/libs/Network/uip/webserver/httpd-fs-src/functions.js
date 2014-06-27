@@ -1,14 +1,20 @@
 
 function runCommand(cmd, silent) {
-  // Get some values from elements on the page:
-  var $form = $( "#commandForm" );
+  // Add to command log
+  silent = silent || false;
+  var option = document.createElement("option");
+  option.text = cmd;
+
   cmd += "\n";
-  url = silent ? "/command_silent" : "/command"; // $form.attr( "action" );
+  var url = $("#address").val();
+  url += silent ? "/command_silent" : "/command";
   // Send the data using post
-  var posting = $.post( url, cmd );
+  if(silent) {
+    $.post( url, cmd );
+  } else {
   // Put the results in a div
-  if(!silent) {
-    posting.done(function( data ) {
+    document.getElementById("commandlog").add(option, 0);
+    $.post( url, cmd, function( data ) {
       $( "#result" ).empty();
       $.each(data.split('\n'), function(index) {
         $( "#result" ).append( this + '<br/>' );
@@ -18,55 +24,145 @@ function runCommand(cmd, silent) {
 }
 
 function runCommandSilent(cmd) {
-  runCommand(cmd, true);
+  runCommand(cmd);
+}
+
+xx = 0;
+function fake() {
+	xx += 0.05;
+	return "T:"+(100+Math.sin(xx)*100)+" B:50";
 }
 
 function runCommandCallback(cmd,callback) {
     var url = "/command";
     cmd += "\n";
-    var posting = $.post( url, cmd, callback);
+    $.post( url, cmd, callback);
+	callback(fake());
 }
 
 function jogXYClick (cmd) {
-  runCommand("G91 G0 " + cmd + " F" + document.getElementById("xy_velocity").value + " G90", true)
+  runCommand("G91 G0 " + cmd + " F" + $("#xy_velocity").val() + " G90")
 }
 
 function jogZClick (cmd) {
-  runCommand("G91 G0 " + cmd + " F" + document.getElementById("z_velocity").value + " G90", true)
+  runCommand("G91 G0 " + cmd + " F" + $("#z_velocity").val() + " G90")
 }
 
 function extrude(event,a,b) {
-  var length = document.getElementById("extrude_length").value;
-  var velocity = document.getElementById("extrude_velocity").value;
+  var length = $("#extrude_length").val();
+  var velocity = $("#extrude_velocity").val();
   var direction = (event.currentTarget.id=='extrude')?1:-1;
-  runCommand("G91 G0 E" + (length * direction) + " F" + velocity + " G90", true);
+  runCommand("G91 G0 E" + (length * direction) + " F" + velocity + " G90");
 }
 
 function motorsOff(event) {
-  runCommand("M18", true);
+  runCommand("M18");
 }
 
 function heatSet(event) {
   var type = (event.currentTarget.id=='heat_set')?104:140;
-  var temperature = (type==104)?document.getElementById("heat_value").value:document.getElementById("bed_value").value;
-  runCommand("M" + type + " S" + temperature, true);
+  var temperature = (type==104) ? $("#heat_value").val() : $("#bed_value").val();
+  runCommand("M" + type + " S" + temperature);
 }
 
 function heatOff(event) {
   var type = (event.currentTarget.id=='heat_off')?104:140;
-  runCommand("M" + type + " S0", true);
+  runCommand("M" + type + " S0");
 }
 function getTemperature () {
   runCommand("M105", false);
 }
 
+var plot,
+	data1 = [],
+	data2 = [],
+	totalPoints = 100,
+	updateInterval = 100;
+var graphTimer;
+
+$( function(){
+	$("#updateInterval").val(updateInterval).change(function () {
+		var v = $(this).val();
+		if (v && !isNaN(+v)) {
+			updateInterval = +v;
+		}
+	});
+});
+
+function startGraph() {
+	updateGraph();
+}
+
+function pushData(val, data) {
+	if (data.length > totalPoints) {
+		data.shift();
+	}
+	
+	data.push(val);
+
+	var res = [];
+	for (var i = 0; i < data.length; ++i) {
+		res.push([i, data[i]])
+	}
+	return res;
+}
+
+function addTemp(str) {
+	var regex = /[A-Z]:([0-9.]+).*[A-Z]:([0-9.]+)/;
+	var match = regex.exec(str);
+	
+/*	if (data1.length > totalPoints) {
+		data1 = data1.slice(1);
+		data2 = data2.slice(1);
+	}
+	
+	data1.push(Number(match[1]));
+	data2.push(Number(match[2]));
+
+	var res1 = [];
+	var res2 = [];
+	for (var i = 0; i < data1.length; ++i) {
+		res1.push([i, data1[i]])
+		res2.push([i, data2[i]])
+	}
+*/
+	var res1 = pushData(Number(match[1]), data1);
+	var res2 = pushData(Number(match[2]), data2);
+	
+	plot = $.plot("#tempGraph", [res1, res2], {
+		series: {
+			shadowSize: 0	// Drawing is faster without shadows
+		},
+		yaxis: {
+			min: 0
+		},
+		xaxis: {
+			min: 0,
+			max: totalPoints,
+			show: false
+		}
+	});
+
+	plot.draw();
+}
+
+function updateGraph() {
+	runCommandCallback("M105", addTemp);
+
+	graphTimer = setTimeout(updateGraph, updateInterval);
+}
+
+function stopGraph() {
+  clearInterval(graphTimer);
+}
+
 function fanSet(event) {
-  var val = document.getElementById("fan_value").value;
-  runCommand("M106 S" + val, true);
+  runCommand("M106 S" + $("#fan_value").val());
 }
 
 function fanOff() {
-  runCommand("M107", true);
+  $("#fan_value").val(0);
+  runCommand("M107");
 }
 
 function handleFileSelect(evt) {
