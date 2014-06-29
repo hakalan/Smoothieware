@@ -1,14 +1,12 @@
 var busy = false;
 
 function runCommand(cmd, callback) {
-    callback("ok " + cmd + ": 12345");
-    return;
     if(!busy) {
         busy = true;
         var url = $("#address").val() + "/command";
         cmd += "\n";
         $.post( url, cmd, callback)
-            .fail( function() { log("Failed!"); })
+            .fail( function() { log("No contact with printer!"); })
             .always( function() { busy = false; });
     } else {
         $( "#result" ).text("Busy!");    
@@ -68,17 +66,13 @@ function getTemperature () {
   runCommand("M105", false);
 }
 
-var plot,
-    data1 = [],
-    data2 = [],
-    totalPoints = 100,
-    graphTimer;
-
 $(function(){
-    var tset = $("#heat_value").val();
-    var bset = $("#bed_value").val();
-    
-    plot = $.plot("#tempGraph", [], {
+    var data1 = [],
+        data2 = [],
+        totalPoints = 100,
+        graphTimer;
+
+    var plot = $.plot("#tempGraph", [], {
         series: {
             shadowSize: 0   // Drawing is faster without shadows
         },
@@ -94,66 +88,65 @@ $(function(){
         legend: { position: "nw" }
     });
     plot.draw();
-});
 
-function startGraph() {
-    updateGraph();
-}
+    function pushMeas(val, data) {
+        if (data.length > totalPoints) {
+            data.shift();
+        }
+        
+        data.push(val);
 
-function pushData(val, data) {
-    if (data.length > totalPoints) {
-        data.shift();
+        var res = [];
+        for (var i = 0; i < data.length; ++i) {
+            res.push([i, data[i]])
+        }
+        return res;
     }
-    
-    data.push(val);
 
-    var res = [];
-    for (var i = 0; i < data.length; ++i) {
-        res.push([i, data[i]])
+    function addTemp(str) {
+        var regex = /([A-Z]):([0-9.]+)\/([0-9.]+).*([A-Z]):([0-9.]+)\/([0-9.]+)/;
+        var match = regex.exec(str);
+        
+        var res1 = pushMeas(Number(match[2]), data1);
+        var res2 = pushMeas(Number(match[5]), data2);
+        
+        var set1 = Number(match[3]);
+        var set2 = Number(match[6]);
+        
+        plot.setData([ 
+            { label: match[1], lines: { lineWidth: 3 }, data: res1 }, 
+            { lines: { lineWidth: 1 }, data: [[0, set1],[totalPoints, set1]] },
+            { label: match[4], lines: { lineWidth: 3 }, data: res2 },
+            { lines: { lineWidth: 1 }, data: [[0, set2],[totalPoints, set2]] }]);
+        plot.setupGrid();
+        plot.draw();
     }
-    return res;
-}
 
-function addTemp(str) {
-    var regex = /([A-Z]):([0-9.]+)\/([0-9.]+).*([A-Z]):([0-9.]+)\/([0-9.]+)/;
-    var match = regex.exec(str);
-    
-    var res1 = pushData(Number(match[2]), data1);
-    var res2 = pushData(Number(match[5]), data2);
-    
-    var set1 = Number(match[3]);
-    var set2 = Number(match[6]);
-    
-    plot.setData([ 
-        { label: match[1], lines: { lineWidth: 3 }, data: res1 }, 
-        { lines: { lineWidth: 1 }, data: [[0, set1],[totalPoints, set1]] },
-        { label: match[4], lines: { lineWidth: 3 }, data: res2 },
-        { lines: { lineWidth: 1 }, data: [[0, set2],[totalPoints, set2]] }]);
-    plot.setupGrid();
-    plot.draw();
+    var xx = 0;
+    function fake() {
+        xx += 0.05;
+        return "T:"+(100+Math.sin(xx)*100)+"/200 @0 "+
+               "B:"+(50+Math.cos(xx)*50)+"/55 @0";
+    }
 
-    var interval = $("#updateInterval").val();
-    graphTimer = setTimeout(enableGraph, interval);
-}
-
-var xx = 0;
-function fake() {
-    xx += 0.05;
-    return "T:"+(100+Math.sin(xx)*100)+"/200 @0 "+
-           "B:"+(50+Math.cos(xx)*50)+"/55 @0";
-}
-
-function enableGraph() {
-    if($("#enablegraph").is(":checked")) {
+    function updateGraph() {
         if($("#sim").is(":checked")) {
             addTemp(fake());
         } else {
             runCommand("M105", addTemp);
         }
-    } else {
-        clearTimeout(graphTimer);
-    }    
-}
+    }
+
+    var graphInterval;
+    $("#enablegraph").click(function(event) {
+        if(this.checked) {
+            var interval = $("#updateInterval").val();
+            graphInterval = setInterval(updateGraph, interval);
+        } else {
+            clearInterval(graphInterval);
+        }    
+    });
+});
 
 function fanSet(event) {
   runCommand("M106 S" + $("#fan_value").val());
