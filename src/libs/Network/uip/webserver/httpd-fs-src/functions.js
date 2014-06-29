@@ -1,36 +1,38 @@
+var busy = false;
 
-function runCommand(cmd, silent) {
-  // Add to command log
-  silent = silent || false;
-  var option = document.createElement("option");
-  option.text = cmd;
+function runCommand(cmd, callback) {
+    callback("ok " + cmd + ": 12345");
+    return;
+    if(!busy) {
+        busy = true;
+        var url = $("#address").val() + "/command";
+        cmd += "\n";
+        $.post( url, cmd, callback)
+            .fail( function() { log("Failed!"); })
+            .always( function() { busy = false; });
+    } else {
+        $( "#result" ).text("Busy!");    
+    }
+}
 
-  cmd += "\n";
-  var url = $("#address").val();
-  url += silent ? "/command_silent" : "/command";
-  // Send the data using post
-  if(silent) {
-    $.post( url, cmd );
-  } else {
-  // Put the results in a div
-    document.getElementById("commandlog").add(option, 0);
-    $.post( url, cmd, function( data ) {
-      $( "#result" ).empty();
-      $.each(data.split('\n'), function(index) {
-        $( "#result" ).append( this + '<br/>' );
-      });
+function log(msg) {
+    var e = $("#commandlog");
+    e.append( msg + "\n" );
+    e.scrollTop(e.prop("scrollHeight"));
+}
+
+function logCommand(cmd, callback) {
+    log(cmd);
+    runCommand( cmd, function( data ) {
+        log(data);
+        if(callback) callback(data);
     });
-  }
 }
 
-function runCommandSilent(cmd) {
-  runCommand(cmd);
-}
-
-function runCommandCallback(cmd,callback) {
-  var url = $("#address").val() + "/command";
-  cmd += "\n";
-  $.post( url, cmd, callback);
+function send(event) {
+    cmd = $('#commandText').val();
+    logCommand(cmd);
+    $('#commands').append('<option value="'+cmd+'"></option>');
 }
 
 function jogXYClick (cmd) {
@@ -67,81 +69,90 @@ function getTemperature () {
 }
 
 var plot,
-	data1 = [],
-	data2 = [],
-	totalPoints = 100,
-	updateInterval = 100;
-var graphTimer;
+    data1 = [],
+    data2 = [],
+    totalPoints = 100,
+    graphTimer;
 
-$( function(){
-	$("#updateInterval").val(updateInterval).change(function () {
-		var v = $(this).val();
-		if (v && !isNaN(+v)) {
-			updateInterval = +v;
-		}
-	});
+$(function(){
+    var tset = $("#heat_value").val();
+    var bset = $("#bed_value").val();
+    
+    plot = $.plot("#tempGraph", [], {
+        series: {
+            shadowSize: 0   // Drawing is faster without shadows
+        },
+        yaxis: {
+            min: 0
+        },
+        xaxis: {
+            min: 0,
+            max: totalPoints,
+            show: false
+        },
+        colors: [ "#d00000", "#e02020", "#0000d0", "#2020e0" ],
+        legend: { position: "nw" }
+    });
+    plot.draw();
 });
 
 function startGraph() {
-	updateGraph();
+    updateGraph();
 }
 
 function pushData(val, data) {
-	if (data.length > totalPoints) {
-		data.shift();
-	}
-	
-	data.push(val);
+    if (data.length > totalPoints) {
+        data.shift();
+    }
+    
+    data.push(val);
 
-	var res = [];
-	for (var i = 0; i < data.length; ++i) {
-		res.push([i, data[i]])
-	}
-	return res;
+    var res = [];
+    for (var i = 0; i < data.length; ++i) {
+        res.push([i, data[i]])
+    }
+    return res;
 }
 
 function addTemp(str) {
-	var regex = /[A-Z]:([0-9.]+).*[A-Z]:([0-9.]+)/;
-	var match = regex.exec(str);
-	
-	var res1 = pushData(Number(match[1]), data1);
-	var res2 = pushData(Number(match[2]), data2);
-	
-	plot = $.plot("#tempGraph", [res1, res2], {
-		series: {
-			shadowSize: 0	// Drawing is faster without shadows
-		},
-		yaxis: {
-			min: 0
-		},
-		xaxis: {
-			min: 0,
-			max: totalPoints,
-			show: false
-		}
-	});
+    var regex = /([A-Z]):([0-9.]+)\/([0-9.]+).*([A-Z]):([0-9.]+)\/([0-9.]+)/;
+    var match = regex.exec(str);
+    
+    var res1 = pushData(Number(match[2]), data1);
+    var res2 = pushData(Number(match[5]), data2);
+    
+    var set1 = Number(match[3]);
+    var set2 = Number(match[6]);
+    
+    plot.setData([ 
+        { label: match[1], lines: { lineWidth: 3 }, data: res1 }, 
+        { lines: { lineWidth: 1 }, data: [[0, set1],[totalPoints, set1]] },
+        { label: match[4], lines: { lineWidth: 3 }, data: res2 },
+        { lines: { lineWidth: 1 }, data: [[0, set2],[totalPoints, set2]] }]);
+    plot.setupGrid();
+    plot.draw();
 
-	plot.draw();
+    var interval = $("#updateInterval").val();
+    graphTimer = setTimeout(enableGraph, interval);
 }
 
 var xx = 0;
 function fake() {
-	xx += 0.05;
-	return "T:"+(100+Math.sin(xx)*100)+"/200 B:50/55";
+    xx += 0.05;
+    return "T:"+(100+Math.sin(xx)*100)+"/200 @0 "+
+           "B:"+(50+Math.cos(xx)*50)+"/55 @0";
 }
 
-function updateGraph() {
-  if($("#sim").is(":checked")) {
-    addTemp(fake());
-  } else {
-	runCommandCallback("M105", addTemp);
-  }
-  
-  graphTimer = setTimeout(updateGraph, updateInterval);
-}
-
-function stopGraph() {
-  clearInterval(graphTimer);
+function enableGraph() {
+    if($("#enablegraph").is(":checked")) {
+        if($("#sim").is(":checked")) {
+            addTemp(fake());
+        } else {
+            runCommand("M105", addTemp);
+        }
+    } else {
+        clearTimeout(graphTimer);
+    }    
 }
 
 function fanSet(event) {
@@ -152,6 +163,10 @@ function fanOff() {
   $("#fan_value").val(0);
   runCommand("M107");
 }
+
+$(function() {
+  document.getElementById('files').addEventListener('change', handleFileSelect, false);
+});
 
 function handleFileSelect(evt) {
     var files = evt.target.files; // handleFileSelectist object
@@ -236,12 +251,12 @@ function upload() {
 }
 
 function playFile(filename) {
-  runCommandSilent("play /sd/"+filename);
+  runCommand("play /sd/"+filename);
 }
 
 function refreshFiles() {
   document.getElementById('fileList').innerHTML = '';
-  runCommandCallback("M20", function(data){
+  runCommand("M20", function(data){
     $.each(data.split('\n'), function(index) {
       var item = this.trim();
         if (item.match(/\.g(code)?$/)) {
