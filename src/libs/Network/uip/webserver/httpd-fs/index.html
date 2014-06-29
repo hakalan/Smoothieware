@@ -12,7 +12,7 @@
 
 <div id="ctrl" style="width:350px;float:left">
 <h1>Welcome to Smoothie</h1>
-
+Address:<input type="text" id="address"></input><br/>
 <button id="motors_off" onclick="motorsOff(event)">Motors Off</button>
 
 XY:<input type="text" id="xy_velocity" size=4 value=3000 style="width:50px" />mm/min
@@ -92,21 +92,21 @@ Z:<input type="text" id="z_velocity" size=3 value=200 style="width:40px">
         </symbol>
 
         <symbol id="JogRose" viewBox="20 -10 260 260">
-            <g id="HomeAll" onmouseup="runCommand('G28')">
+            <g id="HomeAll" onmouseup="logCommand('G28')">
                 <path class="std" d="M10 182.5 h-10 v57.5 h57.5 v-10 a 125,125 0 0,1 -47.5 -47.5 Z" fill="#f0f0f0">
                     <set attributeName="fill" to="orange" begin="mouseover" end="mouseout"/>
                 </path>
                 <use x="3" y="217" width="20" height="18" xlink:href="#HomeIcon"/>
             </g>
 
-            <g id="HomeX" onmouseup="runCommand('G28 X0')">
+            <g id="HomeX" onmouseup="logCommand('G28 X0')">
                 <path class="std" d="M10 57.50 h-10 v-57.5 h57.5 v10 a 125,125 0 0,0 -47.5 47.5 Z" fill="Khaki">
                     <set attributeName="fill" to="orange" begin="mouseover" end="mouseout"/>
                 </path>
                 <use x="3" y="5" width="20" height="18" xlink:href="#HomeIcon"/>
                 <text x="25" y="20" class="home"> X </text>
             </g>
-            <g id="HomeY" onmouseup="runCommand('G28 Y0')">
+            <g id="HomeY" onmouseup="logCommand('G28 Y0')">
                 <path class="std" d="M230 57.50 h10 v-57.5 h-57.5 v10 a 125,125 0 0,1 47.5 47.5 z" fill="SteelBlue">
                     <set attributeName="fill" to="orange" begin="mouseover" end="mouseout"/>
                 </path>
@@ -114,7 +114,7 @@ Z:<input type="text" id="z_velocity" size=3 value=200 style="width:40px">
                 <text x="202" y="20" class="home"> Y </text>
             </g>
 
-            <g id="HomeZ" onmouseup="runCommand('G28 Z0')">
+            <g id="HomeZ" onmouseup="logCommand('G28 Z0')">
                 <path class="std" d="M230 182.5 h10 v57.5 h-57.5 v-10 a 125,125 0 0,0 47.5 -47.5 z" fill="DarkSeaGreen">
                     <set attributeName="fill" to="orange" begin="mouseover" end="mouseout"/>
                 </path>
@@ -367,8 +367,8 @@ mm/min
 <br/>
 <table id="fileList">
 </table>
-<button id="progress" onclick="runCommand('progress')">Progress</button>
-<button id="abort" onclick="runCommand('abort')">Abort</button>
+<button id="progress" onclick="logCommand('progress')">Progress</button>
+<button id="abort" onclick="logCommand('abort')">Abort</button>
 
 </div>
 </table>

@@ -9,7 +9,7 @@ function runCommand(cmd, callback) {
             .fail( function() { log("No contact with printer!"); })
             .always( function() { busy = false; });
     } else {
-        $( "#result" ).text("Busy!");    
+        log("Busy!");    
     }
 }
 
@@ -34,36 +34,36 @@ function send(event) {
 }
 
 function jogXYClick (cmd) {
-  runCommand("G91 G0 " + cmd + " F" + $("#xy_velocity").val() + " G90")
+  logCommand("G91 G0 " + cmd + " F" + $("#xy_velocity").val() + " G90")
 }
 
 function jogZClick (cmd) {
-  runCommand("G91 G0 " + cmd + " F" + $("#z_velocity").val() + " G90")
+  logCommand("G91 G0 " + cmd + " F" + $("#z_velocity").val() + " G90")
 }
 
 function extrude(event,a,b) {
   var length = $("#extrude_length").val();
   var velocity = $("#extrude_velocity").val();
   var direction = (event.currentTarget.id=='extrude')?1:-1;
-  runCommand("G91 G0 E" + (length * direction) + " F" + velocity + " G90");
+  logCommand("G91 G0 E" + (length * direction) + " F" + velocity + " G90");
 }
 
 function motorsOff(event) {
-  runCommand("M18");
+  logCommand("M18");
 }
 
 function heatSet(event) {
   var type = (event.currentTarget.id=='heat_set')?104:140;
   var temperature = (type==104) ? $("#heat_value").val() : $("#bed_value").val();
-  runCommand("M" + type + " S" + temperature);
+  logCommand("M" + type + " S" + temperature);
 }
 
 function heatOff(event) {
   var type = (event.currentTarget.id=='heat_off')?104:140;
-  runCommand("M" + type + " S0");
+  logCommand("M" + type + " S0");
 }
 function getTemperature () {
-  runCommand("M105", false);
+  logCommand("M105", false);
 }
 
 $(function(){
@@ -104,7 +104,7 @@ $(function(){
     }
 
     function addTemp(str) {
-        var regex = /([A-Z]):([0-9.]+)\/([0-9.]+).*([A-Z]):([0-9.]+)\/([0-9.]+)/;
+        var regex = /([A-Z]):([0-9.]+).*\/([0-9.]+).*([A-Z]):([0-9.]+).*\/([0-9.]+)/;
         var match = regex.exec(str);
         
         var res1 = pushMeas(Number(match[2]), data1);
@@ -149,12 +149,12 @@ $(function(){
 });
 
 function fanSet(event) {
-  runCommand("M106 S" + $("#fan_value").val());
+  logCommand("M106 S" + $("#fan_value").val());
 }
 
 function fanOff() {
   $("#fan_value").val(0);
-  runCommand("M107");
+  logCommand("M107");
 }
 
 $(function() {
@@ -244,12 +244,12 @@ function upload() {
 }
 
 function playFile(filename) {
-  runCommand("play /sd/"+filename);
+  logCommand("play /sd/"+filename);
 }
 
 function refreshFiles() {
   document.getElementById('fileList').innerHTML = '';
-  runCommand("M20", function(data){
+  logCommand("M20", function(data){
     $.each(data.split('\n'), function(index) {
       var item = this.trim();
         if (item.match(/\.g(code)?$/)) {
