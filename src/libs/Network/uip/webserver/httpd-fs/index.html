@@ -4,7 +4,7 @@
 	<meta charset="utf-8">
 	<title>Smoothie Web</title>
 	<script type="text/javascript" src="http://code.jquery.com/jquery-1.9.1.js"></script>
-	<script type="text/javascript" src="http://www.flotcharts.org/flot/jquery.flot.js"></script>
+	<script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/flot/0.8.2/jquery.flot.min.js"></script>
 	<script type="text/javascript" src="functions.js"></script>
 </head>
 
@@ -12,7 +12,7 @@
 
 <div id="ctrl" style="width:350px;float:left">
 <h1>Welcome to Smoothie</h1>
-
+Address:<input type="text" id="address"></input><br/>
 <button id="motors_off" onclick="motorsOff(event)">Motors Off</button>
 
 XY:<input type="text" id="xy_velocity" size=4 value=3000 style="width:50px" />mm/min
@@ -353,7 +353,7 @@ mm/min
 <pre id="commandlog" style="width:300px;height:200px;overflow-y:scroll;"></pre>
 <button onclick="$('#commandlog').empty()">Clear</button>
 </div>
-<div id="files" style="width:350px;float:left;">
+<div style="width:350px;float:left;">
 
 <h2> Upload File </h2>
 <input type="file" id="files" name="files[]" onchange="upload();">

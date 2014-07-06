@@ -3,13 +3,13 @@ var busy = false;
 function runCommand(cmd, callback) {
     if(!busy) {
         busy = true;
-        var url = $("#address").val() + "/command";
+        var url = $("#address").val() + (callback ? "/command" : "/command_silent");
         cmd += "\n";
         $.post( url, cmd, callback)
             .fail( function() { log("No contact with printer!"); })
             .always( function() { busy = false; });
     } else {
-        $( "#result" ).text("Busy!");    
+        log("Busy!");    
     }
 }
 
@@ -63,7 +63,7 @@ function heatOff(event) {
   runCommand("M" + type + " S0");
 }
 function getTemperature () {
-  runCommand("M105", false);
+  logCommand("M105", false);
 }
 
 $(function(){
@@ -104,7 +104,7 @@ $(function(){
     }
 
     function addTemp(str) {
-        var regex = /([A-Z]):([0-9.]+)\/([0-9.]+).*([A-Z]):([0-9.]+)\/([0-9.]+)/;
+        var regex = /([A-Z]):([0-9.]+) *\/([0-9.]+).*([A-Z]):([0-9.]+) *\/([0-9.]+)/;
         var match = regex.exec(str);
         
         var res1 = pushMeas(Number(match[2]), data1);
@@ -189,7 +189,7 @@ function upload() {
         xhr = new XMLHttpRequest();
 
         // send the file through POST
-        xhr.open("POST", 'upload', true);
+        xhr.open("POST", $("#address").val() + '/upload', true);
         xhr.setRequestHeader('X-Filename', file.name);
 
         // make sure we have the sendAsBinary method on all browsers
