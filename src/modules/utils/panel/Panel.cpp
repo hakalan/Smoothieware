@@ -31,6 +31,7 @@
 #include "panels/ReprapDiscountGLCD.h"
 #include "panels/ST7565.h"
 #include "panels/UniversalAdapter.h"
+#include "panels/SSD1322.h"
 
 #include "version.h"
 #include "checksumm.h"
@@ -48,6 +49,7 @@
 #define viki2_checksum             CHECKSUM("viki2")
 #define mini_viki2_checksum        CHECKSUM("mini_viki2")
 #define universal_adapter_checksum CHECKSUM("universal_adapter")
+#define ssd1322_checksum           CHECKSUM("ssd1322")
 
 #define menu_offset_checksum        CHECKSUM("menu_offset")
 #define encoder_resolution_checksum CHECKSUM("encoder_resolution")
@@ -115,6 +117,8 @@ void Panel::on_module_loaded()
         this->lcd = new ST7565(2); // variant 2
     } else if (lcd_cksm == universal_adapter_checksum) {
         this->lcd = new UniversalAdapter();
+	} else if (lcd_cksm == ssd1322_checksum) {
+		this->lcd = new SSD1322();
     } else {
         // no known lcd type defined
         delete this;

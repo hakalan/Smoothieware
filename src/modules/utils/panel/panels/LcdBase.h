@@ -34,7 +34,7 @@ class LcdBase {
         // Required LCD functions
         virtual void home()= 0;
         virtual void clear()= 0;
-        virtual void display()= 0;
+//        virtual void display()= 0;
         virtual void setCursor(uint8_t col, uint8_t row)= 0;
 
         // Returns button states including the encoder select button
