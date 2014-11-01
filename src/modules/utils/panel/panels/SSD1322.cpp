@@ -35,11 +35,19 @@
 
 #define contrast_checksum          CHECKSUM("contrast")
 
-#define CLAMP(x, low, high) { if ( (x) < (low) ) x = (low); if ( (x) > (high) ) x = (high); } while (0);
-#define swap(a, b) { uint8_t t = a; a = b; b = t; }
+template<typename Val>
+Val clamp(Val x, Val min, Val max)
+{
+  if( x < min ) return min;
+  else if( x > max ) return max;
+  else return x;
+}
 
 SSD1322::SSD1322() :
-	dirty(false)
+	dirty_{false},
+    framebuffer_{nullptr},
+    contrast_{127},
+    old_AB_{0}
 {
     //SPI com
     // select which SPI channel to use
@@ -53,30 +61,30 @@ SSD1322::SSD1322() :
         mosi = P0_18; miso = P0_17; sclk = P0_15;
     }
 
-    this->spi = new mbed::SPI(mosi, miso, sclk);
-    this->spi->frequency(THEKERNEL->config->value(panel_checksum, spi_frequency_checksum)->by_default(1000000)->as_number()); //4Mhz freq, can try go a little lower
+    spi_ = std::unique_ptr<mbed::SPI>(new mbed::SPI(mosi, miso, sclk));
+    spi_->frequency(THEKERNEL->config->value( panel_checksum, spi_frequency_checksum)->by_default(1000000)->as_number());
 
     //chip select
-    this->cs.from_string(THEKERNEL->config->value( panel_checksum, spi_cs_pin_checksum)->by_default("0.16")->as_string())->as_output();
-    cs.set(1);
+    cs_.from_string(THEKERNEL->config->value( panel_checksum, spi_cs_pin_checksum)->by_default("1.30")->as_string())->as_output();
+    cs_.set(1);
 
     //lcd reset
-    this->rst.from_string(THEKERNEL->config->value( panel_checksum, rst_pin_checksum)->by_default("nc")->as_string())->as_output();
-    if(this->rst.connected()) rst.set(1);
+    rst_.from_string(THEKERNEL->config->value( panel_checksum, rst_pin_checksum)->by_default("nc")->as_string())->as_output();
+    if(rst_.connected()) rst_.set(1);
 
     //cd
-    this->cd.from_string(THEKERNEL->config->value( panel_checksum, cd_pin_checksum)->by_default("2.13")->as_string())->as_output();
-    cd.set(1);
+    cd_.from_string(THEKERNEL->config->value( panel_checksum, cd_pin_checksum)->by_default("1.31")->as_string())->as_output();
+    cd_.set(1);
 
-    this->click_pin.from_string(THEKERNEL->config->value( panel_checksum, click_button_pin_checksum )->by_default("nc")->as_string())->as_input();
-    this->encoder_a_pin.from_string(THEKERNEL->config->value( panel_checksum, encoder_a_pin_checksum)->by_default("nc")->as_string())->as_input();
-    this->encoder_b_pin.from_string(THEKERNEL->config->value( panel_checksum, encoder_b_pin_checksum)->by_default("nc")->as_string())->as_input();
+    click_pin_.from_string(THEKERNEL->config->value( panel_checksum, click_button_pin_checksum )->by_default("nc")->as_string())->as_input();
+    encoder_a_pin_.from_string(THEKERNEL->config->value( panel_checksum, encoder_a_pin_checksum)->by_default("nc")->as_string())->as_input();
+    encoder_b_pin_.from_string(THEKERNEL->config->value( panel_checksum, encoder_b_pin_checksum)->by_default("nc")->as_string())->as_input();
 
     // contrast override
-    this->contrast = THEKERNEL->config->value(panel_checksum, contrast_checksum)->by_default(this->contrast)->as_number();
+    contrast_ = THEKERNEL->config->value(panel_checksum, contrast_checksum)->by_default(contrast_)->as_number();
 
-    framebuffer = (uint8_t *)AHB0.alloc(FB_SIZE); // grab some memory from USB_RAM
-    if(framebuffer == NULL) {
+    framebuffer_ = (uint8_t *)AHB0.alloc(FB_SIZE); // grab some memory from USB_RAM
+    if(framebuffer_ == NULL) {
         THEKERNEL->streams->printf("Not enough memory available for frame buffer");
     }
 
@@ -84,111 +92,91 @@ SSD1322::SSD1322() :
 
 SSD1322::~SSD1322()
 {
-    delete this->spi;
-    AHB0.dealloc(framebuffer);
+    AHB0.dealloc(framebuffer_);
 }
 
-//send commands to lcd
-void SSD1322::send_command(uint8_t cmd)
+void SSD1322::send_command(uint8_t cmd, std::initializer_list<uint8_t> data)
 {
-    cs.set(0);
-    cd.set(0);
-	spi->write(cmd);
-    cs.set(1);
+    cs_.set(0);
+    cd_.set(0);
+	spi_->write(cmd);
+    if(data.size()>0) {
+      cd_.set(1);
+      for(auto val : data) spi_->write(val);
+      cd_.set(0);
+    }
+    cs_.set(1);
 }
 
-void SSD1322::send_command(uint8_t cmd, uint8_t a)
-{
-    cs.set(0);
-    cd.set(0);
-	spi->write(cmd);
-    cd.set(1);
-	spi->write(a);
-    cd.set(0);
-    cs.set(1);
-}
-
-void SSD1322::send_command(uint8_t cmd, uint8_t a, uint8_t b)
-{
-    cs.set(0);
-    cd.set(0);
-	spi->write(cmd);
-    cd.set(1);
-	spi->write(a);
-	spi->write(b);
-    cd.set(0);
-    cs.set(1);
-}
-
-//send data to lcd
 void SSD1322::send_data(const unsigned char *buf, size_t size)
 {
-    cs.set(0);
-    cd.set(1);
+    cs_.set(0);
+    cd_.set(1);
     while(size-- > 0) {
-        spi->write(*buf++);
+        spi_->write(*buf++);
     }
-    cd.set(0);
-    cs.set(1);
+    cd_.set(0);
+    cs_.set(1);
 }
 
 //clearing screen
 void SSD1322::clear()
 {
-    memset(framebuffer, 0, FB_SIZE);
-    this->tx = 0;
-    this->ty = 0;
-	dirty = true;
+    memset(framebuffer_, 0, FB_SIZE);
+    tx_ = 0;
+    ty_ = 0;
+	dirty_ = true;
 }
 
 void SSD1322::update()
 {
-	send_command(0x15, 0x1c, 0x5b); // set col addr
-	send_command(0x75, 0, 0x3f); // set row addr
+    // Note: Hardcoded for 256x64
+	send_command(0x15, {0x1c, 0x5b}); // set col addr
+	send_command(0x75, {0, 0x3f}); // set row addr
     send_command(0x5C);
-    send_data(framebuffer, FB_SIZE);
+    send_data(framebuffer_, FB_SIZE);
 }
 
 void SSD1322::setCursor(uint8_t col, uint8_t row)
 {
-    this->tx = col * FONT_SIZE_X;
-    this->ty = row * FONT_SIZE_Y;
+    tx_ = col * FONT_SIZE_X;
+    ty_ = row * FONT_SIZE_Y;
 }
 
 void SSD1322::home()
 {
-    this->tx = 0;
-    this->ty = 0;
+    tx_ = 0;
+    ty_ = 0;
 }
 
 void SSD1322::init()
 {
-    if(this->rst.connected()) {
-		rst.set(1);
+    if(rst_.connected()) {
+		rst_.set(1);
 		wait_ms(1);
-		rst.set(0);
+		rst_.set(0);
 		wait_ms(1);
-		rst.set(1);
+		rst_.set(1);
 		wait_ms(1);
 	}
 	
 	send_command(0xFD); //Set Command Lock
-	send_command(0xFD, 0x12); /*SET COMMAND LOCK*/ 
+	send_command(0xFD, {0x12}); /*SET COMMAND LOCK*/ 
 	send_command(0xAE); /*DISPLAY OFF*/ 
-	send_command(0xB3, 0x91);/*DISPLAYDIVIDE CLOCKRADIO/OSCILLATAR FREQUANCY*/ 
-	send_command(0xCA, 0x3F); /*multiplex ratio, duty = 1/64*/ 
-	send_command(0xA2, 0x00); /*set offset*/ 
-	send_command(0xA1, 0x00); /*start line*/ 
-	send_command(0xA0, 0x14, 0x11); /*set remap*/
-	send_command(0xAB, 0x01); /*function selection external vdd */ 
-	send_command(0xB4, 0xA0, 0xfd); 
-	send_command(0xC1, contrast); 
-	send_command(0xC7, 0x0f); /*master contrast current control*/ 
-	send_command(0xB1, 0xE2); /*SET PHASE LENGTH*/
-	send_command(0xD1, 0x82, 0x20); 
-	send_command(0xBB, 0x1F); /*SET PRE-CHANGE VOLTAGE*/ 
-	send_command(0xB6, 0x08); /*SET SECOND PRE-CHARGE PERIOD*/
-	send_command(0xBE, 0x07); /* SET VCOMH */ 
+	send_command(0xB3, {0x91});/*DISPLAYDIVIDE CLOCKRADIO/OSCILLATOR FREQUENCY*/ 
+	send_command(0xCA, {0x3F}); /*multiplex ratio, duty = 1/64*/ 
+	send_command(0xA2, {0x00}); /*set offset*/ 
+	send_command(0xA1, {0x00}); /*start line*/ 
+	send_command(0xA0, {0x14, 0x11}); /*set remap*/
+	send_command(0xAB, {0x01}); /*function selection external vdd */ 
+	send_command(0xB4, {0xA0, 0xfd}); 
+	send_command(0xC1, {contrast_}); 
+	send_command(0xC7, {0x0f}); /*master contrast current control*/ 
+	send_command(0xB1, {0xE2}); /*SET PHASE LENGTH*/
+	send_command(0xD1, {0x82, 0x20}); 
+	send_command(0xBB, {0x1F}); /*SET PRE-CHANGE VOLTAGE*/ 
+	send_command(0xB6, {0x08}); /*SET SECOND PRE-CHARGE PERIOD*/
+	send_command(0xBE, {0x07}); /* SET VCOMH */ 
 	send_command(0xA6); /*normal display*/ 
 	clear();
 	update();
@@ -197,32 +185,32 @@ void SSD1322::init()
 
 void SSD1322::setContrast(uint8_t c)
 {
-    contrast = c;
-    send_command(0xc1, c);
+    contrast_ = c;
+    send_command(0xc1, {c});
 }
 
 void SSD1322::write_char(char c)
 {
     if(c == '\n') {
-        ty += FONT_SIZE_Y;
+        ty_ += FONT_SIZE_Y;
     }
     else if(c == '\r') {
-        ty = 0;
+        ty_ = 0;
     }
-	else if(tx <= LCDWIDTH-FONT_SIZE_X) {
-		dirty = true;
-		for (uint8_t yi = 0; yi < 8; yi++ ) {
-			int addr = (tx>>1) + (ty+yi)*(LCDWIDTH/2);
+	else if(tx_ <= LCDWIDTH-FONT_SIZE_X) {
+		dirty_ = true;
+		for (uint8_t yi = 0u; yi < 8u; yi++ ) {
+			uint8_t *addr = framebuffer_ + (tx_>>1) + (ty_+yi)*(LCDWIDTH/2);
 			uint8_t bits = font5x8[(c * 5) + yi];
 			uint8_t a;
 			a = (bits&0x80)>>3 | (bits&0x40)>>6;
-            framebuffer[addr++] = a*0xf;
+            *addr++ = a*0xf;
 			a = (bits&0x20)>>1 | (bits&0x10)>>4;
-            framebuffer[addr++] = a*0xf;
+            *addr++ = a*0xf;
 			a = (bits&0x08)<<1;
-            framebuffer[addr++] = a*0xf;
+            *addr++ = a*0xf;
         }
-        tx += FONT_SIZE_X;
+        tx_ += FONT_SIZE_X;
     }
 }
 
@@ -236,26 +224,25 @@ void SSD1322::write(const char *line, int len)
 //refreshing screen
 void SSD1322::on_refresh(bool now)
 {
-    if(dirty || now) {
+    if(dirty_ || now) {
 		update();
-		dirty = false;
+		dirty_ = false;
     }
 }
 
 //reading button state
 uint8_t SSD1322::readButtons(void)
 {
-    return (click_pin.get() ? BUTTON_SELECT : 0);
+    return (click_pin_.get() ? BUTTON_SELECT : 0);
 }
 
 int SSD1322::readEncoderDelta()
 {
-    static int8_t enc_states[] = {0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0};
-    static uint8_t old_AB = 0;
-    if(this->encoder_a_pin.connected()) {
-        old_AB <<= 2;                   //remember previous state
-        old_AB |= ( this->encoder_a_pin.get() + ( this->encoder_b_pin.get() * 2 ) );  //add current state
-        return  enc_states[(old_AB & 0x0f)];
+    static const int8_t enc_states[] = {0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0};
+    if(encoder_a_pin_.connected()) {
+        old_AB_ <<= 2;                   //remember previous state
+        old_AB_ |= ( encoder_a_pin_.get() + ( encoder_b_pin_.get() * 2 ) );  //add current state
+        return enc_states[(old_AB_ & 0x0f)];
 
     } else {
         return 0;
@@ -264,25 +251,34 @@ int SSD1322::readEncoderDelta()
 
 void SSD1322::bltGlyph(int x, int y, int w, int h, const uint8_t *glyph, int span, int x_offset, int y_offset)
 {
-    CLAMP(x, 0, LCDWIDTH - 1);
-    CLAMP(y, 0, LCDHEIGHT - 1);
-    CLAMP(w, 0, LCDWIDTH - x);
-    CLAMP(h, 0, LCDHEIGHT - y);
+    x = clamp(x, 0, LCDWIDTH - 1);
+    y = clamp(y, 0, LCDHEIGHT - 1);
+    w = clamp(w, 0, LCDWIDTH - x);
+    h = clamp(h, 0, LCDHEIGHT - y);
 
-    const uint8_t *src = &glyph[y_offset * span];
-
-    for(int j = 0; j < h; j++) {
-		for(int i = 0; i < w; i++) {
-			uint8_t val = src[((x+i-x_offset) >> 3) + j * span];
-            pixel(x + i, y + j, val & (128 >> (i & 0x7)));
+    const uint8_t *src_begin = glyph + y_offset * span + (x_offset >> 3);
+    const uint8_t mask_begin = 128 >> (x_offset & 7);
+    for(int yi = y; yi < y + h; ++yi) {
+        uint8_t mask = mask_begin;
+        const uint8_t *src = src_begin;
+		for(uint8_t xi = x; xi < x + w; ++xi) {
+            pixel(xi, yi, (*src) & mask ? 0xf : 0);
+            if(mask == 0) {
+                mask = 128;
+                ++src;
+            }
+            else {
+                mask >>= 1;
+            }
         }
+        src_begin += span;
     }
-	dirty = true;
+	dirty_ = true;
 }
 
-void SSD1322::pixel(int x, int y, int colour)
+void SSD1322::pixel(int x, int y, uint8_t colour)
 {
-    unsigned char *byte = framebuffer + y * (LCDWIDTH>>1) + (x>>1);
+    uint8_t *byte = framebuffer_ + y * (LCDWIDTH >> 1) + (x >> 1);
 	if((x&1)==0) {
 		*byte = (*byte&0x0f)|(colour<<4);
 	} else {
