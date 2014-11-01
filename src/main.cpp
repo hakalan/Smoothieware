@@ -127,21 +127,15 @@ void init() {
 
     // these modules can be completely disabled in the Makefile by adding to EXCLUDE_MODULES
     #ifndef NO_TOOLS_SWITCH
-    SwitchPool *sp= new SwitchPool();
-    sp->load_tools();
-    delete sp;
+    SwitchPool::load_tools();
     #endif
     #ifndef NO_TOOLS_EXTRUDER
     // NOTE this must be done first before Temperature control so ToolManager can handle Tn before temperaturecontrol module does
-    ExtruderMaker *em= new ExtruderMaker();
-    em->load_tools();
-    delete em;
+    ExtruderMaker::load_tools();
     #endif
     #ifndef NO_TOOLS_TEMPERATURECONTROL
     // Note order is important here must be after extruder so Tn as a parameter will get executed first
-    TemperatureControlPool *tp= new TemperatureControlPool();
-    tp->load_tools();
-    delete tp;
+    TemperatureControlPool::load_tools();
     #endif
     #ifndef NO_TOOLS_LASER
     kernel->add_module( new Laser() );

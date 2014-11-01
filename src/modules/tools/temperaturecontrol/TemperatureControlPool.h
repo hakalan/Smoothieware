@@ -10,7 +10,7 @@
 
 class TemperatureControlPool {
     public:
-        void load_tools();
+        static void load_tools();
 };
 
 

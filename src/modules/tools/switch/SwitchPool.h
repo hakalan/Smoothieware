@@ -10,7 +10,7 @@
 
 class SwitchPool{
     public:
-        void load_tools();
+        static void load_tools();
 };
 
 #endif // SWITCHPOOL_H
