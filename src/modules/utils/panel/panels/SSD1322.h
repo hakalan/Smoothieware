@@ -29,7 +29,7 @@ public:
 
 	uint8_t readButtons() override;
 	int readEncoderDelta() override;
-	int getEncoderResolution() override { return 1; }
+	int getEncoderResolution() override { return 2; }
 	uint16_t get_screen_lines() override { return 8; }
 	bool hasGraphics() override { return true; }
 

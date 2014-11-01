@@ -201,7 +201,7 @@ void SSD1322::write_char(char c)
 		dirty_ = true;
 		for (uint8_t yi = 0u; yi < 8u; yi++ ) {
 			uint8_t *addr = framebuffer_ + (tx_>>1) + (ty_+yi)*(LCDWIDTH/2);
-			uint8_t bits = font5x8[(c * 5) + yi];
+			uint8_t bits = font5x8[(c * 8) + yi];
 			uint8_t a;
 			a = (bits&0x80)>>3 | (bits&0x40)>>6;
             *addr++ = a*0xf;
