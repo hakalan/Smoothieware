@@ -263,12 +263,10 @@ void SSD1322::bltGlyph(int x, int y, int w, int h, const uint8_t *glyph, int spa
         const uint8_t *src = src_begin;
 		for(uint8_t xi = x; xi < x + w; ++xi) {
             pixel(xi, yi, (*src) & mask ? 0xf : 0);
+            mask >>= 1;
             if(mask == 0) {
                 mask = 128;
                 ++src;
-            }
-            else {
-                mask >>= 1;
             }
         }
         src_begin += span;
