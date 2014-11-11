@@ -1,6 +1,7 @@
 var busy = false;
 
 function runCommand(cmd, callback) {
+	callback = callback || false
     if(!busy) {
         busy = true;
         var url = $("#address").val() + (callback ? "/command" : "/command_silent");

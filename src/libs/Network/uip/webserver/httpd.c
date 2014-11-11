@@ -362,7 +362,7 @@ PT_THREAD(handle_output(struct httpd_state *s))
             PT_WAIT_THREAD(&s->outputpt, send_headers(s, http_header_404));
             PT_WAIT_THREAD(&s->outputpt, send_file(s));
 
-        } else if (s->cache_page) {
+/*        } else if (s->cache_page) {
             if (s->fd != NULL) {
                 // if it was an sd file then we need to close it
                 fclose(s->fd);
@@ -371,7 +371,7 @@ PT_THREAD(handle_output(struct httpd_state *s))
             // tell it it has not changed
             DEBUG_PRINTF("304 Not Modified\n");
             PT_WAIT_THREAD(&s->outputpt, send_headers_3(s, http_header_304, 0));
-
+*/
         } else {
             DEBUG_PRINTF("sending file %s\n", s->filename);
             PT_WAIT_THREAD(&s->outputpt, send_headers(s, http_header_200));
