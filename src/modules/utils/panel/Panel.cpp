@@ -222,6 +222,7 @@ uint32_t Panel::refresh_tick(uint32_t dummy)
 {
     this->refresh_flag = true;
     this->idle_time++;
+    this->lcd->on_refresh();
     return 0;
 }
 
@@ -320,7 +321,7 @@ void Panel::on_idle(void *argument)
             this->lcd->bltGlyph(24, 40, ohw_logo_antipixel_width, ohw_logo_antipixel_height, ohw_logo_antipixel_bits);
         }
 
-        this->lcd->on_refresh(true); // tell lcd to display now
+//        this->lcd->on_refresh(true); // tell lcd to display now
 
         // Default top screen
         this->top_screen= new MainMenuScreen();
@@ -389,7 +390,7 @@ void Panel::on_idle(void *argument)
         this->refresh_flag = false;
         if (this->current_screen != NULL) {
             this->current_screen->on_refresh();
-            this->lcd->on_refresh();
+//            this->lcd->on_refresh();
         }
     }
 }
