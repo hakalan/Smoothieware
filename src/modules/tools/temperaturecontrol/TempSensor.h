@@ -5,24 +5,30 @@
       you should have received a copy of the gnu general public license along with smoothie. if not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef tempsensor_h
-#define tempsensor_h
-#include <string>
+#ifndef TEMPSENSOR_H
+#define TEMPSENSOR_H
+
+#include <map>
+#include <stdint.h>
 
 class TempSensor
 {
 public:
+    virtual ~TempSensor() {}
+
     // Load config parameters using provided "base" names.
     virtual void update_config(uint16_t module_checksum, uint16_t name_checksum) {}
 
     // Return temperature in degrees Celsius.
-    virtual float get_temperature() { return -1.f; }
+    virtual float get_temperature() { return -1.0F; }
 
-    // Return a short diagnostics string
-    virtual std::string get_diagnostics() { return "dummy"; }
+     // Return a short diagnostics string
+    virtual std::string get_diagnostics() { return ""; }
 
-    // Make sure the interface provides a destructor.
-    virtual ~TempSensor() {}
+    typedef std::map<char, float> sensor_options_t;
+    virtual bool set_optional(const sensor_options_t& options) { return false; }
+    virtual bool get_optional(sensor_options_t& options) { return false; }
+    virtual void get_raw() {}
 };
 
 #endif

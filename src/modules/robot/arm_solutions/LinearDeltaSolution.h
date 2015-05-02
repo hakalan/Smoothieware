@@ -17,16 +17,20 @@ class LinearDeltaSolution : public BaseSolution {
         void init();
 
         float arm_length;
-        float arm_radius_1;
-        float arm_radius_2;
-        float arm_radius_3;
+        float arm_radius;
         float arm_length_squared;
 
-        float DELTA_TOWER1_X;
-        float DELTA_TOWER1_Y;
-        float DELTA_TOWER2_X;
-        float DELTA_TOWER2_Y;
-        float DELTA_TOWER3_X;
-        float DELTA_TOWER3_Y;
+        float delta_tower1_x;
+        float delta_tower1_y;
+        float delta_tower2_x;
+        float delta_tower2_y;
+        float delta_tower3_x;
+        float delta_tower3_y;
+        float tower1_offset;
+        float tower2_offset;
+        float tower3_offset;
+        float tower1_angle;
+        float tower2_angle;
+        float tower3_angle;
 };
 #endif // LINEARDELTASOLUTION_H
