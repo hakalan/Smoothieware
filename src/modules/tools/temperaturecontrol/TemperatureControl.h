@@ -39,57 +39,56 @@ class TemperatureControl : public Module {
         uint32_t thermistor_read_tick(uint32_t dummy);
         void pid_process(float);
 
-        int pool_index_;
+        int pool_index;
 
-        float target_temperature_;
+        float target_temperature;
 
-        float preset1_;
-        float preset2_;
+        float preset1;
+        float preset2;
 
-        TempSensor *sensor_;
+        TempSensor *sensor;
 
         // PID runtime
-        float i_max_;
+        float i_max;
 
-        int o_;
+        int o;
 
-        float last_reading_;
-		uint32_t last_time_;
-		
-        float readings_per_second_;
+        float last_reading;
 
-        uint16_t name_checksum_;
+        float readings_per_second;
 
-        Pwm  heater_pin_;
+        uint16_t name_checksum;
+
+        Pwm  heater_pin;
 
         struct {
-            bool use_bangbang_:1;
-            bool waiting_:1;
-            bool min_temp_violated_:1;
-            bool link_to_tool_:1;
-            bool active_:1;
-            bool readonly_:1;
+            bool use_bangbang:1;
+            bool waiting:1;
+            bool min_temp_violated:1;
+            bool link_to_tool:1;
+            bool active:1;
+            bool readonly:1;
         };
 
-        uint16_t set_m_code_;
-        uint16_t set_and_wait_m_code_;
-        uint16_t get_m_code_;
-        struct pad_temperature public_data_return_;
+        uint16_t set_m_code;
+        uint16_t set_and_wait_m_code;
+        uint16_t get_m_code;
+        struct pad_temperature public_data_return;
 
-        std::string designator_;
+        std::string designator;
 
         void setPIDp(float p);
         void setPIDi(float i);
         void setPIDd(float d);
 
-        float hysteresis_;
-        float iTerm_;
-        float lastInput_;
+        float hysteresis;
+        float iTerm;
+        float lastInput;
         // PID settings
-        float p_factor_;
-        float i_factor_;
-        float d_factor_;
-        float PIDdt_;
+        float p_factor;
+        float i_factor;
+        float d_factor;
+        float PIDdt;
 };
 
 #endif

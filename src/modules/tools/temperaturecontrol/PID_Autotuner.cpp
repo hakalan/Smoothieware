@@ -34,7 +34,7 @@ void PID_Autotuner::on_module_loaded()
 void PID_Autotuner::begin(float target, StreamOutput *stream, int ncycles)
 {
     noiseBand = 0.5;
-    oStep = temp_control->heater_pin_.max_pwm(); // use max pwm to cycle temp
+    oStep = temp_control->heater_pin.max_pwm(); // use max pwm to cycle temp
     nLookBack = 5 * 20; // 5 seconds of lookback
     lookBackCnt = 0;
     tickCnt = 0;
@@ -44,8 +44,8 @@ void PID_Autotuner::begin(float target, StreamOutput *stream, int ncycles)
 
     s = stream;
 
-    temp_control->heater_pin_.set(0);
-    temp_control->target_temperature_ = 0.0;
+    temp_control->heater_pin.set(0);
+    temp_control->target_temperature = 0.0;
 
     target_temperature = target;
     requested_cycles = ncycles;
@@ -65,9 +65,9 @@ void PID_Autotuner::begin(float target, StreamOutput *stream, int ncycles)
     absMax = refVal;
     absMin = refVal;
     output = oStep;
-    temp_control->heater_pin_.pwm(oStep); // turn on to start heating
+    temp_control->heater_pin.pwm(oStep); // turn on to start heating
 
-    s->printf("%s: Starting PID Autotune, %d max cycles, M304 aborts\n", temp_control->designator_.c_str(), ncycles);
+    s->printf("%s: Starting PID Autotune, %d max cycles, M304 aborts\n", temp_control->designator.c_str(), ncycles);
 }
 
 void PID_Autotuner::abort()
@@ -75,8 +75,8 @@ void PID_Autotuner::abort()
     if (temp_control == NULL)
         return;
 
-    temp_control->target_temperature_ = 0;
-    temp_control->heater_pin_.set(0);
+    temp_control->target_temperature = 0;
+    temp_control->heater_pin.set(0);
     temp_control = NULL;
 
     if (s)
@@ -109,7 +109,7 @@ void PID_Autotuner::on_gcode_received(void *argument)
             bool ok = PublicData::get_value( temperature_control_checksum, pool_index_checksum, pool_index, &returned_data );
 
             if (ok) {
-                temp_control =  *static_cast<TemperatureControl **>(returned_data);
+                this->temp_control =  *static_cast<TemperatureControl **>(returned_data);
 
             } else {
                 gcode->stream->printf("No temperature control with index %d found\r\n", pool_index);
@@ -125,8 +125,8 @@ void PID_Autotuner::on_gcode_received(void *argument)
             if (gcode->has_letter('C')) {
                 ncycles = gcode->get_value('C');
             }
-            gcode->stream->printf("Start PID tune for index E%d, designator: %s\n", pool_index, temp_control->designator_.c_str());
-            begin(target, gcode->stream, ncycles);
+            gcode->stream->printf("Start PID tune for index E%d, designator: %s\n", pool_index, this->temp_control->designator.c_str());
+            this->begin(target, gcode->stream, ncycles);
         }
     }
 }
@@ -167,10 +167,10 @@ void PID_Autotuner::on_idle(void *)
     if (refVal > target_temperature + noiseBand) {
         output = 0;
         //temp_control->heater_pin.pwm(output);
-        temp_control->heater_pin_.set(0);
+        temp_control->heater_pin.set(0);
     } else if (refVal < target_temperature - noiseBand) {
         output = oStep;
-        temp_control->heater_pin_.pwm(output);
+        temp_control->heater_pin.pwm(output);
     }
 
     bool isMax = true, isMin = true;
@@ -231,7 +231,7 @@ void PID_Autotuner::on_idle(void *)
     justchanged = false;
 
     if ((tickCnt % 1000) == 0) {
-        s->printf("%s: %5.1f/%5.1f @%d %d/%d\n", temp_control->designator_.c_str(), temp_control->get_temperature(), target_temperature, output, peakCount, requested_cycles);
+        s->printf("%s: %5.1f/%5.1f @%d %d/%d\n", temp_control->designator.c_str(), temp_control->get_temperature(), target_temperature, output, peakCount, requested_cycles);
         DEBUG_PRINTF("lookBackCnt= %d, peakCount= %d, absmax= %g, absmin= %g, peak1= %lu, peak2= %lu\n", lookBackCnt, peakCount, absMax, absMin, peak1, peak2);
     }
 }
@@ -258,8 +258,8 @@ void PID_Autotuner::finishUp()
 
 
     // and clean up
-    temp_control->target_temperature_ = 0;
-    temp_control->heater_pin_.set(0);
+    temp_control->target_temperature = 0;
+    temp_control->heater_pin.set(0);
     temp_control = NULL;
     s = NULL;
 
