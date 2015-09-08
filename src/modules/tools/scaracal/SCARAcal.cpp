@@ -21,6 +21,8 @@
 #include "SerialMessage.h"
 #include "EndstopsPublicAccess.h"
 #include "PublicData.h"
+#include <algorithm>
+#include <map>
 
 #define scaracal_checksum CHECKSUM("scaracal")
 #define enable_checksum CHECKSUM("enable")
@@ -116,17 +118,7 @@ bool SCARAcal::set_home_offset(float x, float y, float z, StreamOutput *stream)
     Gcode gc(cmd, &(StreamOutput::NullStream));
     THEKERNEL->call_event(ON_GCODE_RECEIVED, &gc);
 
-//}
-
-
-//    float t[3]{x, y, z};
-//    bool ok= PublicData::set_value( endstops_checksum, home_offset_checksum, t);
-
-//    if (ok) {
-        stream->printf("set home_offset to X:%f Y:%f Z:%f\n", x, y, z);
-//    } else {
-//        stream->printf("unable to set home_offset, is endstops enabled?\n");
-//    }
+    stream->printf("Set home_offset to X:%f Y:%f Z:%f\n", x, y, z);
 
     return true;//ok;
 }
@@ -207,10 +199,8 @@ void SCARAcal::on_gcode_received(void *argument)
                                  actuators[0],
                                  actuators[1]);    // display actuator angles Theta and Psi.
                 gcode->txt_after_ok.append(buf, n);
-                gcode->mark_as_taken();
-
             }
-            return;
+            break;
 
             case 360: {
                 float target[2] = {0.0F, 120.0F},
@@ -236,9 +226,9 @@ void SCARAcal::on_gcode_received(void *argument)
                     this->home();                                                   // home
                     SCARA_ang_move(target[0], target[1], 100.0F, slow_rate * 3.0F); // move to target
                 }
-                gcode->mark_as_taken();
             }
-            return;
+            break;
+
             case 361: {
                 float target[2] = {90.0F, 130.0F};
                 if(gcode->has_letter('P')) {
@@ -255,10 +245,11 @@ void SCARAcal::on_gcode_received(void *argument)
                     this->home();                                                   // home - This time leave trims as adjusted.
                     SCARA_ang_move(target[0], target[1], 100.0F, slow_rate * 3.0F); // move to target
                 }
-                gcode->mark_as_taken();
+
             }
-            return;
-              case 364: {
+            break;
+
+            case 364: {
                 float target[2] = {45.0F, 135.0F},
                       S_trim[3];
 
@@ -273,21 +264,35 @@ void SCARAcal::on_gcode_received(void *argument)
                     THEKERNEL->robot->get_axis_position(cartesian);                                     // get actual position from robot
                     THEKERNEL->robot->arm_solution->cartesian_to_actuator( cartesian, actuators );      // translate it to get actual actuator angles
 
-                    S_delta[1] = actuators[1] - target[1];                 // Find difference, and
-                    set_trim(S_trim[0], S_delta[1], 0, gcode->stream);     // set trim to reflect the difference
+                    S_delta[1] = ( actuators[1] - actuators[0]) - ( target[1] - target[0] );            // Find difference in angle - not actuator difference, and
+                    set_trim(S_trim[0], S_delta[1], 0, gcode->stream);                                  // set trim to reflect the difference
                 } else {
-                    set_trim(S_trim[0], 0, 0, gcode->stream);               // reset trim for calibration move
-                    this->home();                                                   // home
-                    SCARA_ang_move(target[0], target[1], 100.0F, slow_rate * 3.0F); // move to target
+                    set_trim(S_trim[0], 0, 0, gcode->stream);                                           // reset trim for calibration move
+                    this->home();                                                                       // home
+                    SCARA_ang_move(target[0], target[1], 100.0F, slow_rate * 3.0F);                     // move to target
                 }
-                gcode->mark_as_taken();
             }
-            return;
+            break;
 
-            case 365: {
+            /* TODO case 365: {   // set scara scaling
+              std::map<char, float> buf = gcode->get_args();
+              //algorithm::replace(buf.begin, buf.end , 'X', 'A');
+              //algorithm::algorithm::replace(buf.begin, buf.end , 'Y', 'B');
+              //algorithm::replace(buf.begin, buf.end , 'Z', 'C');
+
+              buf = string("M665 ") + buf;
+
+              Gcode gc(buf, &(StreamOutput::NullStream));
+              THEKERNEL->call_event(ON_GCODE_RECEIVED, &gc);
+
+              //stream->printf("Set scaling to X:%f Y:%f Z:%f\n", x, y, z);
+
+        */
+
+            case 366:                                       // Translate trims to the actual endstop offsets for SCARA
                 this->translate_trim(gcode->stream);
+                break;
 
-            }
         }
     }
 }
