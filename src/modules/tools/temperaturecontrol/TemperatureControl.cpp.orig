@@ -64,17 +64,14 @@
 #define preset1_checksum                   CHECKSUM("preset1")
 #define preset2_checksum                   CHECKSUM("preset2")
 
-TemperatureControl::TemperatureControl(uint16_t name, int index) :
-    name_checksum(name),
-    pool_index(index),
-    waiting(false),
-    temp_violated(false),
-    sensor(nullptr),
-    readonly(false),
-    tick_index(0),
-    read_index(0),
-    max_lag(0)
+TemperatureControl::TemperatureControl(uint16_t name, int index)
 {
+    name_checksum= name;
+    pool_index= index;
+    waiting= false;
+    temp_violated= false;
+    sensor= nullptr;
+    readonly= false;
 }
 
 TemperatureControl::~TemperatureControl()
@@ -101,7 +98,6 @@ void TemperatureControl::on_module_loaded()
         this->register_for_event(ON_MAIN_LOOP);
         this->register_for_event(ON_SET_PUBLIC_DATA);
         this->register_for_event(ON_HALT);
-        this->register_for_event(ON_IDLE);
     }
 }
 
@@ -124,31 +120,6 @@ void TemperatureControl::on_main_loop(void *argument)
         THEKERNEL->call_event(ON_HALT, nullptr);
     }
 }
-
-void TemperatureControl::on_idle(void *argument)
-{
-    // Calculate how far behind we are.
-    uint16_t lag = tick_index - read_index;
-    if(lag > 0) {
-        if(lag > max_lag) max_lag = lag;
-        ++tick_index;
-
-        float temperature = sensor->get_temperature();
-        if(!this->readonly && target_temperature > 2) {
-            if (isinf(temperature) || temperature < min_temp || temperature > max_temp) {
-                this->temp_violated = true;
-                target_temperature = UNDEFINED;
-                heater_pin.set((this->o = 0));
-            } else {
-                pid_process(temperature);
-            }
-        }
-
-        last_reading = temperature;
-    }
-}
-
-
 
 // Get configuration from the config file
 void TemperatureControl::load_config()
@@ -239,12 +210,16 @@ void TemperatureControl::on_gcode_received(void *argument)
             char buf[32]; // should be big enough for any status
             int n = snprintf(buf, sizeof(buf), "%s:%3.1f /%3.1f @%d ", this->designator.c_str(), this->get_temperature(), ((target_temperature <= 0) ? 0.0 : target_temperature), this->o);
             gcode->txt_after_ok.append(buf, n);
+<<<<<<< HEAD
             
             // Output extra diagnostics using letter D.
             if(gcode->has_letter('D'))
             {
-                gcode->txt_after_ok.append("(lag="+max_lag+", "+sensor->get_diagnostics()+") ");
+                gcode->txt_after_ok.append("("+sensor->get_diagnostics()+") ");
             }
+            gcode->mark_as_taken();
+=======
+>>>>>>> 059d6c018f627fb47fc90c62d30d03c00035f824
             return;
         }
 
@@ -453,7 +428,18 @@ float TemperatureControl::get_temperature()
 
 uint32_t TemperatureControl::thermistor_read_tick(uint32_t dummy)
 {
-    ++tick_index;
+    float temperature = sensor->get_temperature();
+    if(!this->readonly && target_temperature > 2) {
+        if (isinf(temperature) || temperature < min_temp || temperature > max_temp) {
+            this->temp_violated = true;
+            target_temperature = UNDEFINED;
+            heater_pin.set((this->o = 0));
+        } else {
+            pid_process(temperature);
+        }
+    }
+
+    last_reading = temperature;
     return 0;
 }
 
