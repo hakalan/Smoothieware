@@ -19,8 +19,7 @@
 //definitions for lcd
 #define LCDWIDTH 256
 #define LCDHEIGHT 64
-#define FB_WIDTH LCDWIDTH/2
-#define FB_SIZE FB_WIDTH*LCDHEIGHT
+#define FB_SIZE LCDWIDTH*LCDHEIGHT/2
 #define FONT_SIZE_X 6
 #define FONT_SIZE_Y 8
 
@@ -48,8 +47,7 @@ SSD1322::SSD1322() :
 	dirty_{false},
     framebuffer_{nullptr},
     contrast_{127},
-    old_AB_{0},
-	scan_line_{0}
+    old_AB_{0}
 {
     //SPI com
     // select which SPI channel to use
@@ -134,11 +132,9 @@ void SSD1322::update()
 {
     // Note: Hardcoded for 256x64
 	send_command(0x15, {0x1c, 0x5b}); // set col addr
-	send_command(0x75, {scan_line_, 0x3f}); // set row addr
+	send_command(0x75, {0, 0x3f}); // set row addr
     send_command(0x5C);
-    send_data(framebuffer_+FB_WIDTH*scan_line_, 4*FB_WIDTH);
-
-    scan_line_ = (scan_line_+4) & 0x3f;
+    send_data(framebuffer_, FB_SIZE);
 }
 
 void SSD1322::setCursor(uint8_t col, uint8_t row)
@@ -229,9 +225,9 @@ void SSD1322::write(const char *line, int len)
 void SSD1322::on_refresh(bool now)
 {
     if(dirty_ || now) {
+		update();
 		dirty_ = false;
     }
-	update();
 }
 
 //reading button state

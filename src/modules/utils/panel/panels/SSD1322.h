@@ -65,9 +65,6 @@ private:
 	uint8_t tx_, ty_;
     uint8_t contrast_;
     uint8_t old_AB_;
-
-    // Next scan line to refresh
-    uint8_t scan_line_;
 };
 
 #endif /* SSD1322_H_ */
